@@ -1,15 +1,107 @@
-//TIP To <b>Run</b> code, press <shortcut actionId="Run"/> or
-// click the <icon src="AllIcons.Actions.Execute"/> icon in the gutter.
+import com.google.gson.*;
+
+import java.io.FileWriter;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Scanner;
+
 public class Main {
     public static void main(String[] args) {
-        //TIP Press <shortcut actionId="ShowIntentionActions"/> with your caret at the highlighted text
-        // to see how IntelliJ IDEA suggests fixing it.
-        System.out.printf("Hello and welcome!");
+        Gson gson = new GsonBuilder()
+                .setFieldNamingPolicy(FieldNamingPolicy.UPPER_CAMEL_CASE)
+                .setPrettyPrinting()
+                .create();
+        List<Object> historialConversiones = new ArrayList<>();
+        System.out.println("""
+                ¡Hola usuario, vamos a convertir las monedas!\s
+                Para convertir las monedas, necesitamos que ingrese su API key de ExchangeRate:\s""");
+        Scanner scanner = new Scanner(System.in);
+        String apikey = scanner.nextLine();
+        String menu = """
+    Ingrese el tipo de moneda base:
+    1) Peso Argentino (ARS)
+    2) Bolívar Venezolano (VES)
+    3) Boliviano boliviano (BOB)
+    4) Dólar Estadounidense (USD)
+    5) Euro (EUR)
+    6) Peso Colombiano (COP)
+    7) Peso Chileno (CLP)
+    8) Peso Mexicano (MXN)
+    9) Real Brasileño (BRL)
+    10) Quetzal (GTQ)""";
+        while (true){
+            System.out.println(menu);
+            System.out.println("11) Salir");
+            int opcionBase = scanner.nextInt();
+            String valorBase = "";
+            String valorDestino = "";
+            double cantidadBase = 0.0;
 
-        for (int i = 1; i <= 5; i++) {
-            //TIP Press <shortcut actionId="Debug"/> to start debugging your code. We have set one <icon src="AllIcons.Debugger.Db_set_breakpoint"/> breakpoint
-            // for you, but you can always add more by pressing <shortcut actionId="ToggleLineBreakpoint"/>.
-            System.out.println("i = " + i);
+            if (opcionBase == 11) {
+                System.out.println("\nHasta luego usuario. :)");
+                break;
+            } else if (opcionBase < 1 || opcionBase > 11) {
+                System.out.println("\nOpción no válida.");
+            } else {
+                valorBase = ValoresMonedas.siglaMoneda(opcionBase);
+                System.out.println("\nSeleccionaste como base: " + valorBase);
+                System.out.println("\nIngrese el valor a convertir:");
+                cantidadBase = scanner.nextDouble();
+                System.out.println("\nIngrese el tipo de moneda destino:");
+                System.out.println(menu);
+                int opcionDestino = scanner.nextInt();
+
+                if (opcionDestino < 1 || opcionDestino > 11) {
+                    System.out.println("\nOpción no válida.");
+                } else {
+                    valorDestino = ValoresMonedas.siglaMoneda(opcionDestino);
+                    System.out.println("\nConvertirás de " + valorBase + " a " + valorDestino);
+                }
+            }
+            String direccion = "https://v6.exchangerate-api.com/v6/"+ apikey +"/pair/" + valorBase + "/" + valorDestino + "/" + cantidadBase;
+            try {
+                HttpClient client = HttpClient.newHttpClient();
+                HttpRequest request = HttpRequest.newBuilder()
+                        .uri(URI.create(direccion))
+                        .build();
+
+                HttpResponse<String> response = client
+                        .send(request, HttpResponse.BodyHandlers.ofString());
+
+                String json = response.body();
+                JsonObject jsonObj = JsonParser.parseString(json).getAsJsonObject();
+                if (!jsonObj.get("result").getAsString().equals("success")) {
+                    System.out.println("Error en la conversión. Verifica tu API key o monedas.");
+                    continue;
+                }
+                InformationAPI respuesta = gson.fromJson(json, InformationAPI.class);
+                String resultadoFinal = "Tasa de cambio de " + valorBase + ": " + respuesta.conversionRateDecimales() + " " + valorDestino +
+                                        "\nResultado: " + respuesta.conversionResultDecimales() + " " + valorDestino + "\n";
+                System.out.println(resultadoFinal);
+                LocalDateTime momento = LocalDateTime.now();
+                DateTimeFormatter formato = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+
+                String marcaTiempo = momento.format(formato);
+                String registro = marcaTiempo + " — " + cantidadBase + " " + valorBase + " → " + respuesta.conversionResultDecimales() + " " + valorDestino;
+                historialConversiones.add(registro);
+            } catch (Exception e){
+                System.out.println("Error, URL no encontrada o errónea");
+                System.out.println("Detalles técnicos: " + e.getMessage());
+            }
+        }
+        if (historialConversiones != null && !historialConversiones.isEmpty()){
+            System.out.println("\nHistorial de conversiones:");
+            for (Object h : historialConversiones) {
+                System.out.println(h);
+            }
+        } else {
+            System.out.println("\nNo se realizaron conversiones.\n");
         }
     }
 }
