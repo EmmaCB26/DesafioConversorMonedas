@@ -12,4 +12,3 @@ public record InformationAPI(
         return String.format("%.2f", conversionRate);
     }
 }
-
