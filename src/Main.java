@@ -23,6 +23,10 @@ public class Main {
                 Para convertir las monedas, necesitamos que ingrese su API key de ExchangeRate:\s""");
         Scanner scanner = new Scanner(System.in);
         String apikey = scanner.nextLine();
+        if (apikey.isBlank()) {
+            System.out.println("API key vacía. Por favor ingrésala nuevamente.");
+            return;
+        }
         String menu = """
     Ingrese el tipo de moneda base:
     1) Peso Argentino (ARS)
@@ -38,7 +42,16 @@ public class Main {
         while (true){
             System.out.println(menu);
             System.out.println("11) Salir");
-            int opcionBase = scanner.nextInt();
+            int opcionBase;
+            int opcionDestino;
+            if (scanner.hasNextInt()) {
+                opcionBase = scanner.nextInt();
+                // seguir flujo
+            } else {
+                System.out.println("Entrada no válida. Por favor ingrese un número.");
+                scanner.next(); // descarta la entrada incorrecta
+                continue;
+            }
             String valorBase = "";
             String valorDestino = "";
             double cantidadBase = 0.0;
@@ -55,12 +68,20 @@ public class Main {
                 cantidadBase = scanner.nextDouble();
                 System.out.println("\nIngrese el tipo de moneda destino:");
                 System.out.println(menu);
-                int opcionDestino = scanner.nextInt();
-
+                if (scanner.hasNextInt()) {
+                    opcionDestino = scanner.nextInt();
+                } else {
+                    System.out.println("Entrada no válida. Por favor ingrese un número.");
+                    scanner.next();
+                    continue;
+                }
                 if (opcionDestino < 1 || opcionDestino > 11) {
                     System.out.println("\nOpción no válida.");
                 } else {
                     valorDestino = ValoresMonedas.siglaMoneda(opcionDestino);
+                    if (valorBase.equals(valorDestino)) {
+                        System.out.println("Seleccionaste la misma moneda como origen y destino. El resultado será el mismo.");
+                    }
                     System.out.println("\nConvertirás de " + valorBase + " a " + valorDestino);
                 }
             }
